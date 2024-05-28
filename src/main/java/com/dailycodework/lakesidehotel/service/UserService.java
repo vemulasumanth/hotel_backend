@@ -28,22 +28,32 @@ public class UserService implements IUserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new UserAlreadyExistsException(user.getEmail() + " already exists");
         }
-
         user.setPassword(passwordEncoder.encode(user.getPassword()));
-
-
-        Role defaultRole = roleRepository.findByName("ROLE_USER")
-                .orElseGet(() -> {
-                    Role newRole = new Role();
-                    newRole.setName("ROLE_USER");
-                    return roleRepository.save(newRole);
-                });
-
+        System.out.println(user.getPassword());
+       
+        // Handle multiple roles, and assign "ROLE_USER" if no roles are provided
         Set<Role> userRoles = new HashSet<>();
-        userRoles.add(defaultRole);
-
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            Role userRole = roleRepository.findByName("ROLE_USER")
+                    .orElseGet(() -> {
+                        Role newRole = new Role();
+                        newRole.setName("ROLE_USER");
+                        return roleRepository.save(newRole);
+                    });
+            userRoles.add(userRole);
+        } else {
+            for (Role role : user.getRoles()) {
+                Role existingRole = roleRepository.findByName(role.getName())
+                        .orElseGet(() -> {
+                            Role newRole = new Role();
+                            newRole.setName(role.getName());
+                            return roleRepository.save(newRole);
+                        });
+                userRoles.add(existingRole);
+            }
+        }
         user.setRoles(userRoles);
-
+       
         return userRepository.save(user);
     }
 
